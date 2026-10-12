@@ -1,0 +1,21 @@
+{
+  "name": "terminal-messages",
+  "version": "0.1.0",
+  "description": "Encrypted chat between terminals on any network, with maxshell notifications",
+  "bin": {
+    "msg": "msg"
+  },
+  "scripts": {
+    "test": "node test/test.js"
+  },
+  "files": [
+    "msg",
+    "lib",
+    "install.sh",
+    "README.md"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  }
+}
