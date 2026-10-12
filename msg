@@ -3,6 +3,8 @@
 
 // msg — chat between terminals on any network. See README.md.
 
+const path = require('path');
+
 const store = require('./lib/store');
 const style = require('./lib/style');
 const room = require('./lib/room');
@@ -183,8 +185,11 @@ async function main() {
     case 'install': {
       const done = maxshell.install(ENTRY);
       store.setConfig({ maxshell: maxshell.present() ? 'on' : undefined });
-      out(done.length ? `${done.map((d) => `✓ ${d}`).join('\n')}\n` : 'already set up\n');
-      if (maxshell.present()) out(muted('open a new maxshell to get notifications\n'));
+      for (const d of done) out(`✓ ${d}\n`);
+      const where = maxshell.linkPath();
+      out(`${style.color('ok', '✓')} msg is installed: ${where.replace(require('os').homedir(), '~')} → ${maxshell.target(ENTRY)}\n`);
+      if (maxshell.present()) out(muted('open a new terminal window to use it and get notifications\n'));
+      else if (!maxshell.onPath()) out(muted(`add ${require('path').dirname(where)} to your PATH to run msg from anywhere\n`));
       return;
     }
 
@@ -192,6 +197,7 @@ async function main() {
       const done = maxshell.uninstall();
       store.setConfig({ maxshell: 'off' });
       out(done.length ? `${done.map((d) => `✓ ${d}`).join('\n')}\n` : 'nothing to undo\n');
+      out(muted(`msg is no longer on your PATH; to put it back run ${path.join(path.dirname(maxshell.target(ENTRY)), 'install.sh')}\n`));
       return;
     }
 
