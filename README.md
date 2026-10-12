@@ -13,19 +13,20 @@ above your prompt.
 
 ## Install
 
-Needs Node.js 16 or newer.
+Needs Node.js 16 or newer. One line, no clone needed:
 
 ```sh
-git clone https://github.com/maxvbuda/terminal-messages
-cd terminal-messages
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/maxvbuda/terminal-messages/main/install.sh | sh
 ```
 
-That puts `msg` on your PATH. With maxshell, it goes in `~/.maxshell/bin`
-and one line is added to `~/.maxshellrc` so new shells get notifications —
-open a new terminal window after installing. (Running `./msg` straight from
-the clone does the same set-up on first use.) `msg uninstall` undoes all of
-it.
+It downloads msg to `~/.terminal-messages/app` and puts `msg` on your PATH.
+Run the same line again to update. From a clone, `./install.sh` does the same
+using the clone.
+
+With maxshell, `msg` goes in `~/.maxshell/bin` and one line is added to
+`~/.maxshellrc` so new shells get notifications — open a new terminal window
+after installing. Without maxshell it's linked into `~/.local/bin`. `msg
+uninstall` undoes the set-up.
 
 ## Use
 
