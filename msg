@@ -189,7 +189,7 @@ async function main() {
       const where = maxshell.linkPath();
       out(`${style.color('ok', '✓')} msg is installed: ${where.replace(require('os').homedir(), '~')} → ${maxshell.target(ENTRY)}\n`);
       if (maxshell.present()) out(muted('open a new terminal window to use it and get notifications\n'));
-      else if (!maxshell.onPath()) out(muted(`add ${require('path').dirname(where)} to your PATH to run msg from anywhere\n`));
+      else if (!maxshell.onPath()) out(muted('open a new terminal window to use it\n'));
       return;
     }
 

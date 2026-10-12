@@ -24,6 +24,12 @@ const listener = require('../lib/listener');
 const fakeNtfy = require('./fake-ntfy');
 
 const MSG = path.join(__dirname, '..', 'msg');
+// Found with the real PATH; then PATH and SHELL are pinned so installs can
+// only ever touch the temporary home.
+const MAXSHELL_SRC = style.maxshellSrc();
+const REAL_PATH = process.env.PATH;
+process.env.PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
+process.env.SHELL = '/bin/zsh';
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 // Runs msg without blocking, since the fake relay lives in this process.
@@ -126,11 +132,36 @@ test('unread counts other people’s messages after what you read', () => {
 
 // --- maxshell set-up -----------------------------------------------------------
 
-test('without maxshell, install only links msg', () => {
+test('without maxshell, msg goes in ~/.local/bin and onto PATH in ~/.zshrc', () => {
+  const zshrc = path.join(process.env.HOME, '.zshrc');
+  fs.writeFileSync(zshrc, 'export EDITOR=vim\n');
   const done = maxshell.install(MSG);
   assert.ok(fs.lstatSync(path.join(process.env.HOME, '.local', 'bin', 'msg')).isSymbolicLink());
   assert.ok(!fs.existsSync(path.join(process.env.HOME, '.maxshellrc')));
   assert.ok(done.some((d) => d.startsWith('linked')));
+  maxshell.install(MSG);
+  assert.strictEqual(fs.readFileSync(zshrc, 'utf8').split(maxshell.BEGIN).length, 2);
+  // The PATH line really makes zsh find it.
+  const zsh = spawnSync('/bin/zsh', ['-c', `source ${zshrc}; command -v msg`], { encoding: 'utf8', env: { ...process.env } });
+  assert.strictEqual(zsh.stdout.trim(), path.join(process.env.HOME, '.local', 'bin', 'msg'));
+  maxshell.uninstall();
+  assert.strictEqual(fs.readFileSync(zshrc, 'utf8'), 'export EDITOR=vim\n');
+  assert.ok(!fs.existsSync(path.join(process.env.HOME, '.local', 'bin', 'msg')));
+});
+
+test('a folder already on PATH is used as it is, with no PATH line', () => {
+  const bin = path.join(process.env.HOME, 'bin');
+  fs.mkdirSync(bin, { recursive: true });
+  process.env.PATH = `${bin}:/usr/bin:/bin`;
+  try {
+    maxshell.install(MSG);
+    assert.ok(fs.lstatSync(path.join(bin, 'msg')).isSymbolicLink());
+    assert.ok(!fs.readFileSync(path.join(process.env.HOME, '.zshrc'), 'utf8').includes(maxshell.BEGIN));
+    maxshell.uninstall();
+    assert.ok(!fs.existsSync(path.join(bin, 'msg')));
+  } finally {
+    process.env.PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
+  }
 });
 
 test('with maxshell, install links msg and adds the hook once; uninstall undoes it', () => {
@@ -169,11 +200,11 @@ test('the first run inside maxshell sets it up by itself, and only once', () => 
 });
 
 test('the rc hook runs in maxshell, if it is installed here', () => {
-  const src = style.maxshellSrc();
+  const src = MAXSHELL_SRC;
   if (!src) return;
   const shellBin = path.join(src, '..', 'bin', 'maxshell.js');
   const r = spawnSync(process.execPath, [shellBin, '-c', maxshell.BLOCK], {
-    encoding: 'utf8', env: { ...process.env, MAXSHELL_SETUP: '0', PATH: `${path.dirname(MSG)}:${process.env.PATH}` },
+    encoding: 'utf8', env: { ...process.env, MAXSHELL_SETUP: '0', PATH: `${path.dirname(MSG)}:${REAL_PATH}` },
   });
   assert.strictEqual(r.status, 0, r.stderr);
 });
