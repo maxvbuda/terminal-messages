@@ -149,6 +149,30 @@ test('without maxshell, msg goes in ~/.local/bin and onto PATH in ~/.zshrc', () 
   assert.ok(!fs.existsSync(path.join(process.env.HOME, '.local', 'bin', 'msg')));
 });
 
+test('maxshell that isn’t the default shell still gets the hook, and zsh still finds msg', () => {
+  // maxshell installed (on PATH, e.g. npm link) but never made the default:
+  // no ~/.maxshell folder at all.
+  const npmBin = path.join(scratch, 'npm-bin');
+  fs.mkdirSync(npmBin, { recursive: true });
+  fs.writeFileSync(path.join(npmBin, 'maxshell'), '#!/bin/sh\n');
+  process.env.PATH = `${npmBin}:/usr/bin:/bin`;
+  try {
+    assert.ok(!fs.existsSync(path.join(process.env.HOME, '.maxshell')));
+    assert.ok(maxshell.present());
+    maxshell.install(MSG);
+    assert.ok(maxshell.installed(), 'hook in ~/.maxshellrc');
+    assert.ok(fs.lstatSync(path.join(process.env.HOME, '.maxshell', 'bin', 'msg')).isSymbolicLink());
+    const zshrc = path.join(process.env.HOME, '.zshrc');
+    const zsh = spawnSync('/bin/zsh', ['-c', `source ${zshrc}; command -v msg`], { encoding: 'utf8', env: { ...process.env } });
+    assert.strictEqual(zsh.stdout.trim(), path.join(process.env.HOME, '.local', 'bin', 'msg'));
+    maxshell.uninstall();
+    assert.ok(!maxshell.installed());
+  } finally {
+    process.env.PATH = '/usr/bin:/bin:/usr/sbin:/sbin';
+    fs.rmSync(path.join(process.env.HOME, '.maxshell'), { recursive: true, force: true });
+  }
+});
+
 test('a folder already on PATH is used as it is, with no PATH line', () => {
   const bin = path.join(process.env.HOME, 'bin');
   fs.mkdirSync(bin, { recursive: true });
